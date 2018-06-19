@@ -1,66 +1,83 @@
-import { Injectable } from "@angular/core";
-import { Subject } from 'rxjs';
-import { HttpClient } from "@angular/common/http";
-import { map } from 'rxjs/operators';
+const express = require('express');
+const bodyparser = require('body-parser');
+const mongoose = require('mongoose');
+const mongodb = require('mongodb');
+const Post = require('./models/post');
 
-@Injectable({ providedIn: 'root' })
-export class PostsService {
-    private posts: Post[] = [];
-    private postsUpdated = new Subject<Post[]>();
+const app = express();
 
-    constructor(private http: HttpClient) { }
+mongoose.connect("mongodb+srv://pushpak:5W39slOErOS8e83v@alphacluster-6w2m7.mongodb.net/node-angular?retryWrites=true")
+         .then(() => {
+           console.log("Connected to database successfully using cluster!")
+         })
+         .catch(() => {
+          console.log("Connection Failed!");
+         }); 
 
-    getPosts() {
-        //When used type of posts as Post[] gave error in subscribing, changed to any
-        //used pipe for _id purpose as mongoose uses _id and angular was using only id and not _id
-        this.http.get<{ message: String, posts: any }>("http://localhost:3000/api/posts")
-            .pipe(map((postDataUnFormatted) => {
-                return postDataUnFormatted.posts.map(post => {
-                    return {
-                        title: post.title,
-                        content: post.content,
-                        id: post._id
-                    };
-                });
-            }))    //After using pipe deleting postData.posts as new output from map is already post object
-            .subscribe(postDataAfterFiltering => {
-                this.posts = postDataAfterFiltering;
-                //to inform all other components or to save last entry
-                this.postsUpdated.next(this.posts);
-            });
+/*app.use((req, res, next) => {
+   console.log("In 1st middleware.");
+   next();
+});*/
+//Setting headers for client and server to communicate
+app.use(bodyparser.json());
+app.use(bodyparser.urlencoded({ extended : false }))
 
-        //will return this posts using httpclient, so commenting for now
-        //return this.posts;//remove brackets to run
-    }
+app.use((req, res, next) => {
+     //In setheader method, first parameter is identifier and second is value
+     res.setHeader("Access-Control-Allow-Origin", "*");
+     res.setHeader(
+       "Access-Control-Allow-Headers",
+       "Origin, X-Requested-With, Content-Type, Accept"
+     );
+     res.setHeader(
+       "Access-Control-Allow-Methods",
+       "GET, POST, PATCH, DELETE, OPTIONS"
+     );
+     next();//forgot to add next(), caused error as request will not be forwarded. adding now.
+     //next() -  a must needed method here other wise request will not be forwarded.
+});
 
-    getPostupdatedAsObservable() {
-        //forgot to use return here. so no subscribe() was available 
-        return this.postsUpdated.asObservable();
-    }
+//GET Request
+app.get("/api/posts", (req, res, next) => {
+  /*const posts = [
+    {id:"zzxcxccv7676", title: "Title A", content: "A coming from Server...."},
+    {id:"ytetitiu9080", title: "Title B", content: "B coming from Server...."}
+  ];*/
+  Post.find().then(documents => {
+   res.status(200).json({
+      message: "Successfully got results in get request..",
+      posts:documents
+   });
+  });
+  
+});
 
-    addPost(title: String, content: String) {
-        const post: Post = {
-            id: null,
-            title: title,
-            content: content
-        };
-        this.http.post<{ message: String }>("http://localhost:3000/api/posts", post)
-            .subscribe(responseData => {
-                this.posts.push(post);
-                this.postsUpdated.next(this.posts);
-                //when i used post variable above in place of response, it give error in 
-                //pushing to posts as response is not of type Post[] but it is of type {message:String}
-                //post is used as req.body in app.js and only message is returned in res which we get here
-                console.log(responseData.message);
-            });
-    }
+//adding post route
+app.post("/api/posts", (req, res, next) => {
+  const post = new Post({
+    title: req.body.title,
+    content: req.body.content
+  });
+    //commenting after adding post from model
+    //const post = req.body;
+    post.save().then(createdPost => {
+      res.status(201).json({
+        message: "Post added successfully!",
+        postId: createdPost._id
+      });
+    });//every model has this save method
+    //console.log(post);
+    
+});
 
-    onDelete(postId: String){
-        this.http.delete("http://localhost:3000/api/posts/" + postId)
-        .subscribe(() => {
-            console.log("List Item deleted.")
-        });
+//Deleting list item
+app.delete("/api/posts/:id", (req, res, next) => {
+   Post.deleteOne({ _id: req.params.id}).then(result => {
+     console.log(result);
+     res.status(200).json({
+      message: "Item deleted !"
+    });
+   });
+});
 
-    }
-
-}
+module.exports = app;
