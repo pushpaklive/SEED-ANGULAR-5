@@ -25,12 +25,16 @@ app.use(bodyparser.urlencoded({ extended : false }))
 app.use((req, res, next) => {
      //In setheader method, first parameter is identifier and second is value
      res.setHeader("Access-Control-Allow-Origin", "*");
-     //added s to Header
-     res.setHeader("Access-Control-Allow-Headers",
-     "Origin, X-Requested-With, Content-Type,  Accept");
-     res.setHeader("Access-Control-Allow-Methods","GET,POST,PUT,PATCH,DELETE,OPTIONS");
-     //forgot to add next(), caused error as request will not be forwarded. adding now.
-     next(); // a must needed method here other wise request will not be forwarded.
+     res.setHeader(
+       "Access-Control-Allow-Headers",
+       "Origin, X-Requested-With, Content-Type, Accept"
+     );
+     res.setHeader(
+       "Access-Control-Allow-Methods",
+       "GET, POST, PATCH, DELETE, OPTIONS"
+     );
+     next();//forgot to add next(), caused error as request will not be forwarded. adding now.
+     //next() -  a must needed method here other wise request will not be forwarded.
 });
 
 //GET Request
@@ -56,18 +60,21 @@ app.post("/api/posts", (req, res, next) => {
   });
     //commenting after adding post from model
     //const post = req.body;
-    post.save();//every model has this save method
+    post.save().then(createdPost => {
+      res.status(201).json({
+        message: "Post added successfully!",
+        postId: createdPost._id
+      });
+    });//every model has this save method
     //console.log(post);
-    res.status(201).json({
-      message: "Post added successfully!"
-    });
+    
 });
 
 //Deleting list item
 app.delete("/api/posts/:id", (req, res, next) => {
    Post.deleteOne({ _id: req.params.id}).then(result => {
      console.log(result);
-     res.status(202).json({
+     res.status(200).json({
       message: "Item deleted !"
     });
    });
