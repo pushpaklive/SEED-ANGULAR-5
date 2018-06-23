@@ -1,15 +1,29 @@
 <!--<textarea [value]="'Ready to submit?'" cols="60" #postInput></textarea>-->
 <mat-card>
-    <mat-form-field>
-        <textarea matInput rows="6" [(ngModel)]="enteredValue"></textarea>
-    </mat-form-field>
+    <form (submit)="savePost(postForm)" #postForm="ngForm">
+            <mat-form-field>
+                    <input matInput type="text" 
+                    name="title"
+                    ngModel
+                    required
+                    minlength="3"
+                    #title="ngModel"
+                    placeholder="Post Title">
+                    <mat-error *ngIf="title.invalid">Please enter a post title.</mat-error>
+                </mat-form-field>
+                <mat-form-field>
+                    <textarea matInput
+                    name="content"
+                    rows="5"
+                    ngModel
+                    required
+                    #content="ngModel"
+                    placeholder="Post Content"></textarea>
+                    <mat-error *ngIf="content.invalid">Please enter some content.</mat-error>
+                </mat-form-field>
+                <button mat-raised-button color="warn" type="submit">Submit</button>
+            </form>
 </mat-card>
-
-<hr>
-<button mat-raised-button color="warn" (click)="addPost()" type="submit">Submit</button>
-<button mat-raised-button color="accent" 
-(click)="emptySavedText()">Clear</button>
-{{newPost}}
 
 
 <!--#postInput can be used as a selector/as a reference

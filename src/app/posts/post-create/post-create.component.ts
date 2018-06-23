@@ -1,21 +1,54 @@
-import { Component } from '@angular/core';
+import { Component, EventEmitter, Output, OnInit } from '@angular/core';
+import { NgForm } from '@angular/forms';
+import { PostsService } from '../posts.service';
+import { ActivatedRoute, ParamMap } from '@angular/router';
 
 @Component({
     selector: 'app-post-create',
-    templateUrl: 'post-create.component.html',
-    styleUrls: ['post-create.component.css']
+    templateUrl: './post-create.component.html',
+    styleUrls: ['./post-create.component.css']
 })
-export class PostCreateComponent {
+export class PostCreateComponent implements OnInit{
+    
+    private mode = "create";
+    private postId: String;
+    post: Post;
 
-    newPost = "";
-    enteredValue = "";
+    constructor(public postsService : PostsService, public route: ActivatedRoute){}
 
-    addPost() {
-        this.newPost = this.enteredValue;
+
+    ngOnInit(){
+        //postId we will set in routes as same component will be used for editing also i.e PostCreateComponent   
+         this.route.paramMap.subscribe((paramMap : ParamMap) => {
+             if(paramMap.has('postId')){
+                 this.mode="edit";
+                 this.postId = paramMap.get('postId');   
+                 this.post = this.postsService.getPost(this.postId);
+             }
+             else{
+                 this.mode="create";//like when reloads or so
+                 this.postId=null;
+             }
+         })
     }
 
-    emptySavedText(){
-        this.newPost="";
-        this.enteredValue=""
+    savePost(form: NgForm) {
+        if(form.invalid)
+          return;
+  
+        if(this.mode == "create"){
+            this.postsService.addPost(form.value.title,form.value.content);    
+            
+        }else{
+            this.postsService.updatePost(this.postId, form.value.title,form.value.content);
+        }
+        
+        form.resetForm();
+        
+        //CLearing form once data is displayed in list component
+        /*const post : Post = {
+            title : form.value.title,
+            content : form.value.content
+        };*/
     }
 }
